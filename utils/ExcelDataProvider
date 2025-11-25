@@ -1,0 +1,47 @@
+package com.framework.utils;
+
+import org.apache.poi.ss.usermodel.*;
+import java.io.FileInputStream;
+import java.util.*;
+
+public final class ExcelDataProvider {
+
+    private ExcelDataProvider() {}
+
+    public static List<Map<String, String>> getData(String sheetName) {
+        List<Map<String, String>> testData = new ArrayList<>();
+
+        try (FileInputStream fis = new FileInputStream(System.getProperty("user.dir") +
+                "/src/test/resources/TestData.xlsx");
+             Workbook workbook = WorkbookFactory.create(fis)) {
+
+            Sheet sheet = workbook.getSheet(sheetName);
+            Row header = sheet.getRow(0);
+
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row dataRow = sheet.getRow(i);
+                Map<String, String> rowMap = new HashMap<>();
+
+                for (int j = 0; j < dataRow.getLastCellNum(); j++) {
+                    Cell cell = dataRow.getCell(j);
+                    rowMap.put(header.getCell(j).getStringCellValue(),
+                            cell == null ? "" : cell.toString());
+                }
+                testData.add(rowMap);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("❌ Could not read Excel sheet: " + sheetName, e);
+        }
+        return testData;
+    }
+
+    public static String getCellValue(String sheetName, int row, int col) {
+        try(FileInputStream fis = new FileInputStream(System.getProperty("user.dir") +
+                "/src/test/resources/TestData.xlsx");
+            Workbook workbook = WorkbookFactory.create(fis)) {
+            return workbook.getSheet(sheetName).getRow(row).getCell(col).toString();
+        } catch (Exception e) {
+            throw new RuntimeException("❌ Cannot read cell", e);
+        }
+    }
+}
