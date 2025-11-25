@@ -15,7 +15,10 @@ public abstract class BasePage {
     protected WebDriverWait wait;
     protected JavascriptExecutor js;
 
-    protected ElementUtils eleUtil;
+    protected ElementUtils eleUtil; 
+/*protected allows child classes (HomePage, LoginPage) to access them
+but still keeps them hidden from outside the page layer*/
+
     protected JSUtils jsUtil;
     protected WaitUtils waitUtil;
 
