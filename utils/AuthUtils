@@ -1,0 +1,78 @@
+import java.security.SecureRandom;
+import java.time.Instant;
+import java.util.Base64;
+
+import javax.crypto.Mac;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.apache.commons.codec.binary.Base32;
+import com.eatthepath.otp.TimeBasedOneTimePasswordGenerator;
+import com.eatthepath.otp.HmacOneTimePasswordGenerator;
+import org.jboss.aerogear.security.otp.Totp;
+
+public class AuthUtils {
+
+    private static final SecureRandom secureRandom = new SecureRandom();
+
+    // ------------------ TOTP using TimeBasedOneTimePasswordGenerator ------------------
+    public static String generateTOTP(String base32Secret) throws Exception {
+        Base32 base32 = new Base32();
+        byte[] keyBytes = base32.decode(base32Secret);
+        SecretKey key = new SecretKeySpec(keyBytes, "HmacSHA1");
+        TimeBasedOneTimePasswordGenerator totpGenerator = new TimeBasedOneTimePasswordGenerator();
+        int otp = totpGenerator.generateOneTimePassword(key, Instant.now());
+        return String.format("%06d", otp);
+    }
+
+    // ------------------ TOTP using Aerogear Totp ------------------
+    public static String generateTOTPWithAerogear(String secret) {
+        Totp totp = new Totp(secret);
+        return totp.now();
+    }
+
+    // ------------------ HOTP (counter-based OTP) ------------------
+    public static String generateHOTP(String base32Secret, long counter) throws Exception {
+        Base32 base32 = new Base32();
+        byte[] keyBytes = base32.decode(base32Secret);
+        SecretKey key = new SecretKeySpec(keyBytes, "HmacSHA1");
+        HmacOneTimePasswordGenerator hotpGenerator = new HmacOneTimePasswordGenerator();
+        int otp = hotpGenerator.generateOneTimePassword(key, counter);
+        return String.format("%06d", otp);
+    }
+
+    // ------------------ Generate random Base32 secret ------------------
+    public static String generateBase32Secret() {
+        byte[] bytes = new byte[20]; // 160-bit secret
+        secureRandom.nextBytes(bytes);
+        Base32 base32 = new Base32();
+        return base32.encodeToString(bytes);
+    }
+
+    // ------------------ Verify TOTP using Aerogear ------------------
+    public static boolean verifyTOTP(String base32Secret, String otp) {
+        Totp totp = new Totp(base32Secret);
+        return totp.verify(otp);
+    }
+
+    // ------------------ Generate random token for backup/API keys ------------------
+    public static String generateRandomToken(int length) {
+        byte[] bytes = new byte[length];
+        secureRandom.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    public static void main(String[] args) throws Exception {
+        String secret = generateBase32Secret();
+        System.out.println("Base32 Secret: " + secret);
+
+        System.out.println("TOTP (TimeBasedOneTimePasswordGenerator): " + generateTOTP(secret));
+        System.out.println("TOTP (Aerogear): " + generateTOTPWithAerogear(secret));
+        System.out.println("HOTP (counter=1): " + generateHOTP(secret, 1));
+
+        String otpToVerify = generateTOTPWithAerogear(secret);
+        System.out.println("Verify OTP: " + verifyTOTP(secret, otpToVerify));
+
+        System.out.println("Random token (32 bytes): " + generateRandomToken(32));
+    }
+}
