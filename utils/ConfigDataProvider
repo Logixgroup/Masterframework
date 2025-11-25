@@ -1,0 +1,37 @@
+package com.framework.utils;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Objects;
+import java.util.Properties;
+
+public final class ConfigDataManager {
+
+    private static Properties properties = new Properties();
+
+    private ConfigDataManager() {}
+
+    static {
+        try(FileInputStream fis = new FileInputStream(System.getProperty("user.dir") +
+                "/src/test/resources/config.properties")) {
+            properties.load(fis);
+        } catch (IOException e) {
+            throw new RuntimeException("❌ FAILED to load config.properties", e);
+        }
+    }
+
+    public static String get(String key) {
+        String value = properties.getProperty(key);
+        if (Objects.isNull(value))
+            throw new RuntimeException("❌ Config key not found → " + key);
+        return value.trim();
+    }
+
+    public static boolean getBoolean(String key) {
+        return Boolean.parseBoolean(get(key));
+    }
+
+    public static int getInt(String key) {
+        return Integer.parseInt(get(key));
+    }
+}
