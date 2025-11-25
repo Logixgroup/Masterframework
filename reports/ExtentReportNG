@@ -1,0 +1,166 @@
+package com.can.reports;
+
+import com.aventstack.extentreports.AnalysisStrategy;
+import com.aventstack.extentreports.ExtentReports;
+import com.aventstack.extentreports.reporter.ExtentSparkReporter;
+import com.aventstack.extentreports.reporter.configuration.Theme;
+
+import java.io.IOException;
+import java.nio.file.*;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
+import java.util.Objects;
+
+public final class ExtentReportNG {
+
+    private ExtentReportNG() {}
+
+    private static volatile ExtentReports extent;
+    private static String reportFolder = "reports";
+    private static String reportFileName = null;
+
+    private static final DateTimeFormatter TF = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
+
+    /* -----------------------------------------
+       INIT Extent Reports
+    ------------------------------------------ */
+    public static synchronized void initExtentReports() {
+        initExtentReports(null);
+    }
+
+    public static synchronized void initExtentReports(Map<String, Object> config) {
+        if (Objects.nonNull(extent)) {
+            return; // already initialized
+        }
+
+        try {
+            // ─────────────────────── Folder Setup ───────────────────────
+            if (config != null && config.containsKey("reportFolder")) {
+                reportFolder = String.valueOf(config.get("reportFolder"));
+            }
+            if (!Files.exists(Paths.get(reportFolder))) {
+                Files.createDirectories(Paths.get(reportFolder));
+            }
+
+            // ─────────────────────── File Naming ───────────────────────
+            String prefix = (config != null && config.containsKey("reportFileNamePrefix"))
+                    ? String.valueOf(config.get("reportFileNamePrefix"))
+                    : "ExecutionReport";
+
+            reportFileName = prefix + "_" + ZonedDateTime.now().format(TF) + ".html";
+            String fullReportPath = Paths.get(reportFolder).resolve(reportFileName).toString();
+
+            // ─────────────────────── Spark Reporter ───────────────────────
+            ExtentSparkReporter spark = new ExtentSparkReporter(fullReportPath);
+            spark.config().setEncoding("UTF-8");
+            spark.config().setDocumentTitle("Automation Test Execution Report");
+            spark.config().setReportName("Execution Summary");
+
+            // Theme override
+            Theme theme = Theme.STANDARD;
+            if (config != null && "DARK".equalsIgnoreCase(String.valueOf(config.get("theme")))) {
+                theme = Theme.DARK;
+            }
+            spark.config().setTheme(theme);
+            spark.config().enableTimeline(true);
+
+            // ─────────────────────── Extent Object ───────────────────────
+            extent = new ExtentReports();
+            extent.attachReporter(spark);
+
+            // Default System Info
+            extent.setSystemInfo("OS", System.getProperty("os.name"));
+            extent.setSystemInfo("Java", System.getProperty("java.version"));
+            extent.setSystemInfo("User", System.getProperty("user.name"));
+
+            // Additional System Info from config
+            if (config != null && config.get("systemInfo") instanceof Map) {
+                ((Map<?, ?>) config.get("systemInfo")).forEach((k, v) ->
+                        extent.setSystemInfo(String.valueOf(k), String.valueOf(v)));
+            }
+
+            // Analysis Strategy (SUITE default)
+            extent.setAnalysisStrategy(AnalysisStrategy.SUITE);
+            if (config != null && config.containsKey("analysisStrategy")) {
+                try {
+                    extent.setAnalysisStrategy(
+                            AnalysisStrategy.valueOf(String.valueOf(config.get("analysisStrategy")).toUpperCase())
+                    );
+                } catch (Exception ignore) {
+                    extent.setAnalysisStrategy(AnalysisStrategy.SUITE);
+                }
+            }
+
+        } catch (IOException e) {
+            throw new RuntimeException("❌ Failed to initialize ExtentReports", e);
+        }
+    }
+
+    /* -----------------------------------------
+       GET Extent instance
+    ------------------------------------------ */
+    public static ExtentReports getExtent() {
+        if (Objects.isNull(extent)) {
+            initExtentReports();
+        }
+        return extent;
+    }
+
+    /* -----------------------------------------
+       FLUSH Reports
+    ------------------------------------------ */
+    public static synchronized void flushReports() throws IOException {
+        if (Objects.isNull(extent)) return;
+        extent.flush();
+        createLatestPointer();
+      // Desktop.getDesktop().browse(new File("index.html").toURI());
+
+    }
+
+    private static void createLatestPointer() throws IOException {
+        if (reportFileName == null) return;
+        Path src = Paths.get(reportFolder).resolve(reportFileName);
+        Path dest = Paths.get(reportFolder).resolve("latest.html");
+        Files.copy(src, dest, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    /* -----------------------------------------
+       UTILITY METHODS
+    ------------------------------------------ */
+
+    public static String getReportFilePath() {
+        if (reportFileName == null) return null;
+        return Paths.get(reportFolder).resolve(reportFileName).toAbsolutePath().toString();
+    }
+
+    public static void addSystemInfo(String key, String value) {
+        if (Objects.nonNull(extent)) {
+            extent.setSystemInfo(key, value);
+        }
+    }
+
+    public static void addSystemInfo(Map<String, String> map) {
+        if (Objects.nonNull(extent) && map != null) {
+            map.forEach(ExtentReportNG::addSystemInfo);
+        }
+    }
+
+    public static void setAnalysisStrategySuite() {
+        if (Objects.nonNull(extent)) {
+            extent.setAnalysisStrategy(AnalysisStrategy.SUITE);
+        }
+    }
+
+    public static void setAnalysisStrategyClass() {
+        if (Objects.nonNull(extent)) {
+            extent.setAnalysisStrategy(AnalysisStrategy.CLASS);
+        }
+    }
+
+    public static void setAnalysisStrategyTest() {
+        if (Objects.nonNull(extent)) {
+            extent.setAnalysisStrategy(AnalysisStrategy.TEST);
+        }
+    }
+}
