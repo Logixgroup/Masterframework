@@ -1,0 +1,75 @@
+package com.driver;
+
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.edge.EdgeDriver;
+import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.remote.RemoteWebDriver;
+
+import java.net.URL;
+import java.util.Objects;
+
+public class CreateDriver {
+
+    private static volatile CreateDriver INSTANCE;
+    private static ThreadLocal<WebDriver> driver = new ThreadLocal<>();
+
+    private CreateDriver() {}
+
+    public static CreateDriver getInstance() {
+        if (INSTANCE == null) {
+            synchronized (CreateDriver.class) {
+                if (INSTANCE == null) {
+                    INSTANCE = new CreateDriver();
+                }
+            }
+        }
+        return INSTANCE;
+    }
+
+    public void setDriver(String browser) {
+        WebDriver webDriver = null;
+        try {
+            switch (browser.toLowerCase()) {
+                case "chrome":
+                    webDriver = new ChromeDriver();
+                    break;
+                case "firefox":
+                    webDriver = new FirefoxDriver();
+                    break;
+                case "edge":
+                    webDriver = new EdgeDriver();
+                    break;
+                default:
+                    throw new RuntimeException("❌ Invalid browser name: " + browser);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("❌ Failed to initialize driver for: " + browser, e);
+        }
+        driver.set(webDriver);
+    }
+
+    public void setRemoteDriver(String browser, String gridUrl) {
+        try {
+            RemoteWebDriver remoteDriver = new RemoteWebDriver(new URL(gridUrl),
+                    new BrowserCapabilities().getCapabilities(browser));
+            driver.set(remoteDriver);
+        } catch (Exception e) {
+            throw new RuntimeException("❌ Failed to start remote driver", e);
+        }
+    }
+
+    public WebDriver getDriver() {
+        if (driver.get() == null) {
+            throw new RuntimeException("⚠ WebDriver is NULL — call setDriver() first");
+        }
+        return driver.get();
+    }
+
+    public void quitDriver() {
+        if (Objects.nonNull(driver.get())) {
+            driver.get().quit();
+            driver.remove();
+        }
+    }
+}
