@@ -1,0 +1,74 @@
+package com.framework.base;
+
+import com.framework.config.ConfigDataProvider;
+import com.framework.driver.CreateDriver;
+import com.framework.reports.ExtentLogger;
+import com.framework.reports.ExtentManager;
+import com.framework.reports.ExtentReportNG;
+import com.framework.utilities.ExcelDataProvider;
+import org.openqa.selenium.WebDriver;
+import org.testng.ITestResult;
+import org.testng.annotations.*;
+
+public class BaseTest {
+
+    protected ConfigDataProvider config;
+    protected ExcelDataProvider excel;
+
+    @BeforeSuite(alwaysRun = true)
+    public void beforeSuiteSetup() {
+        System.out.println("===== Framework Initialization Started =====");
+
+        // Load Config + Test Data
+        config = new ConfigDataProvider();
+        excel = new ExcelDataProvider();
+
+        // Init Extent Reports
+        ExtentReportNG.initReports();
+
+        System.out.println("===== Framework Initialization Completed =====");
+    }
+
+    @BeforeMethod(alwaysRun = true)
+    public void setup(Method method) {
+        // Create new Extent Test for each test case
+        ExtentManager.createTest(method.getName());
+
+        ExtentLogger.info("Starting test: " + method.getName());
+
+        // Set driver
+        String browser = config.getBrowser();
+        CreateDriver.getInstance().setDriver(browser);
+
+        WebDriver driver = CreateDriver.getInstance().getDriver();
+        driver.manage().window().maximize();
+
+        String url = config.getUrl();
+        driver.get(url);
+
+        ExtentLogger.pass("Launched browser: " + browser);
+        ExtentLogger.pass("Navigated to URL: " + url);
+    }
+
+    @AfterMethod(alwaysRun = true)
+    public void teardown(ITestResult result) {
+
+        if (result.getStatus() == ITestResult.FAILURE) {
+            ExtentLogger.fail(result.getThrowable().getMessage());
+        } else if (result.getStatus() == ITestResult.SUCCESS) {
+            ExtentLogger.pass("Test Passed Successfully");
+        } else if (result.getStatus() == ITestResult.SKIP) {
+            ExtentLogger.skip("Test Skipped");
+        }
+
+        // Quit WebDriver
+        CreateDriver.getInstance().quitDriver();
+        ExtentLogger.info("Closed Browser");
+    }
+
+    @AfterSuite(alwaysRun = true)
+    public void afterSuiteTeardown() {
+        ExtentReportNG.flushReports();
+        System.out.println("===== Framework Execution Completed → Reports Generated =====");
+    }
+}
