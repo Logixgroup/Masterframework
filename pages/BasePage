@@ -15,6 +15,11 @@ public abstract class BasePage {
     protected WebDriverWait wait;
     protected JavascriptExecutor js;
 
+    protected ElementUtils eleUtil;
+    protected JSUtils jsUtil;
+    protected WaitUtils waitUtil;
+
+
     public BasePage() {
         this.driver = CreateDriver.getInstance().getDriver();
         this.wait = new WebDriverWait(driver, Duration.ofSeconds(20));
