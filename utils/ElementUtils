@@ -1,0 +1,27 @@
+package com.framework.utils.elementutils;
+
+import com.framework.reports.ExtentLogger;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+
+public final class ElementUtils {
+
+    private ElementUtils() {}
+
+    public static void click(WebElement element, String msg) {
+        element.click();
+        ExtentLogger.pass("Clicked → " + msg);
+    }
+
+    public static void type(WebElement element, String text, String msg) {
+        element.clear();
+        element.sendKeys(text);
+        ExtentLogger.pass("Typed '" + text + "' → " + msg);
+    }
+
+    public static String getText(WebElement element, String msg) {
+        String text = element.getText();
+        ExtentLogger.pass("Fetched text → " + msg + " : " + text);
+        return text;
+    }
+}
