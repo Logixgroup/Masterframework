@@ -1,0 +1,14 @@
+package com.framework.pages;
+
+import com.framework.base.BasePage;
+
+public class ProductsPage extends BasePage {
+
+    public ProductsPage() {
+        super();
+    }
+
+    public String getProductsPageTitle() {
+        return driver.getTitle();
+    }
+}
