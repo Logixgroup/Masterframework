@@ -1,0 +1,53 @@
+package com.framework.utils;
+
+import javax.mail.*;
+import javax.mail.internet.*;
+import java.util.Properties;
+
+public final class EmailUtils {
+
+    private EmailUtils() {}
+
+    public static void sendEmail(String to, String subject, String body, String attachmentPath) {
+
+        final String from = ConfigDataManager.get("email.sender");
+        final String password = ConfigDataManager.get("email.password");
+
+        Properties props = new Properties();
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", ConfigDataManager.get("email.smtp.host"));
+        props.put("mail.smtp.port", ConfigDataManager.get("email.smtp.port"));
+
+        Session session = Session.getInstance(props, new Authenticator() {
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(from, password);
+            }
+        });
+
+        try {
+            MimeMessage message = new MimeMessage(session);
+            message.setFrom(from);
+            message.addRecipients(Message.RecipientType.TO, to);
+            message.setSubject(subject);
+
+            MimeBodyPart msgPart = new MimeBodyPart();
+            msgPart.setText(body);
+
+            MimeBodyPart attachment = new MimeBodyPart();
+            attachment.attachFile(attachmentPath);
+
+            Multipart multipart = new MimeMultipart();
+            multipart.addBodyPart(msgPart);
+            multipart.addBodyPart(attachment);
+
+            message.setContent(multipart);
+            Transport.send(message);
+
+            System.out.println("📩 Email sent with attachment → " + attachmentPath);
+
+        } catch (Exception e) {
+            throw new RuntimeException("❌ Unable to send email report", e);
+        }
+    }
+}
