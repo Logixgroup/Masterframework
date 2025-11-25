@@ -1,0 +1,171 @@
+import com.can.listeners;
+import com.can.reports.ExtentLogger;
+import com.can.reports.ExtentReportNG;
+import org.testng.*;
+import com.aventstack.extentreports.ExtentReports;
+
+public class Listeners implements ITestListener, ISuiteListener {
+
+    // ---------- ISuiteListener ----------
+    @Override
+    public void onStart(ISuite suite) {
+        // Executed before entire suite starts
+        System.out.println("[SUITE START] " + suite.getName());
+        // Call default method (safe call to interface default implementation)
+        ISuiteListener.super.onStart(suite);
+
+        // Initialize extent reports (idempotent init inside the util)
+        ExtentReportNG.initExtentReports();
+
+        // Optional: add an initial log
+        ExtentLogger.info("Initialized Extent reports for suite: " + suite.getName());
+    }
+
+    @Override
+    public void onFinish(ISuite suite) {
+        // Executed after entire suite finishes
+        System.out.println("[SUITE FINISH] " + suite.getName());
+        try {
+            // flush reports - may throw IOException depending on implementation
+            ExtentReportNG.flushReports();
+            ExtentLogger.info("Flushed Extent reports for suite: " + suite.getName());
+        } catch (java.io.IOException e) {
+            // Wrap to unchecked so TestNG lifecycle isn't silently swallowed
+            ExtentLogger.fail("Exception while flushing reports: " + e.getMessage());
+            throw new RuntimeException("Failed to flush Extent reports", e);
+        } finally {
+            ISuiteListener.super.onFinish(suite);
+        }
+    }
+
+    // ---------- ITestListener ----------
+    @Override
+    public void onTestStart(ITestResult result) {
+        // Create an Extent test node for this test method
+        String name = getTestName(result);
+        ExtentReportNG.createTest(name);
+        ExtentLogger.info("[TEST START] " + name + " — thread: " + Thread.currentThread().getId());
+        ITestListener.super.onTestStart(result);
+    }
+
+    @Override
+    public void onTestSuccess(ITestResult result) {
+        String name = getTestName(result);
+        long durationMs = result.getEndMillis() - result.getStartMillis();
+        ExtentLogger.pass("[TEST PASS] " + name + " (duration: " + durationMs + "ms)");
+        // If your Extent wrapper supports attaching metadata, you could add duration, groups, etc.
+        ITestListener.super.onTestSuccess(result);
+    }
+
+    @Override
+    public void onTestFailure(ITestResult result) {
+        String name = getTestName(result);
+        Throwable t = result.getThrowable();
+
+        // Format throwable and log
+        String formatted = formatThrowable(t);
+        ExtentLogger.fail("[TEST FAIL] " + name + "\n" + formatted);
+
+        // Try to find and attach screenshot (adjust path/rules as per your project)
+        String screenshotPath = findScreenshotForTest(result.getMethod().getMethodName());
+        if (screenshotPath != null) {
+            ExtentLogger.fail("Screenshot attached: " + screenshotPath);
+            // If ExtentReportNG supports attaching files, call that here:
+            // ExtentReportNG.attachScreenshotToCurrentTest(screenshotPath);
+        }
+
+        // Optional: include any additional context (groups / parameters)
+        Object[] params = result.getParameters();
+        if (params != null && params.length > 0) {
+            ExtentLogger.info("Test parameters: " + java.util.Arrays.toString(params));
+        }
+
+        ITestListener.super.onTestFailure(result);
+    }
+
+    @Override
+    public void onTestSkipped(ITestResult result) {
+        String name = getTestName(result);
+        Throwable t = result.getThrowable();
+        String reason = (t != null) ? t.getMessage() : "No reason provided";
+        ExtentLogger.info("[TEST SKIPPED] " + name + " — reason: " + reason);
+        ITestListener.super.onTestSkipped(result);
+    }
+
+    @Override
+    public void onTestFailedButWithinSuccessPercentage(ITestResult result) {
+        String name = getTestName(result);
+        ExtentLogger.info("[TEST FAIL WITHIN SUCCESS %] " + name + " — successPercentage: "
+                + result.getMethod().getSuccessPercentage());
+        ITestListener.super.onTestFailedButWithinSuccessPercentage(result);
+    }
+
+    @Override
+    public void onTestFailedWithTimeout(ITestResult result) {
+        // Delegate to onTestFailure to keep behavior consistent
+        onTestFailure(result);
+        ITestListener.super.onTestFailedWithTimeout(result);
+    }
+
+    @Override
+    public void onStart(ITestContext context) {
+        // Executed before any test methods in this <test> tag run
+        System.out.println("[TEST CONTEXT START] " + context.getName());
+        ExtentLogger.info("Test context started: " + context.getName());
+        ITestListener.super.onStart(context);
+    }
+
+    @Override
+    public void onFinish(ITestContext context) {
+        // Executed after all test methods in this <test> tag finish
+        System.out.println("[TEST CONTEXT FINISH] " + context.getName());
+        ExtentLogger.info("Test context finished: " + context.getName());
+
+        // Optionally flush per-test context (if your report requires it)
+        try {
+            ExtentReportNG.flushReports();
+        } catch (java.io.IOException e) {
+            ExtentLogger.fail("Exception while flushing reports on test context finish: " + e.getMessage());
+        }
+
+        ITestListener.super.onFinish(context);
+    }
+
+    // ---------- Helper utilities ----------
+    private String getTestName(ITestResult result) {
+        if (result == null) return "UNKNOWN_TEST";
+        String methodName = result.getMethod() != null ? result.getMethod().getMethodName() : "unknownMethod";
+        String className = (result.getTestClass() != null && result.getTestClass().getName() != null)
+                ? result.getTestClass().getName() : "unknownClass";
+        return className + "." + methodName;
+    }
+
+    private String formatThrowable(Throwable t) {
+        if (t == null) return "No throwable available";
+        StringBuilder sb = new StringBuilder();
+        sb.append("Exception: ").append(t.getClass().getName()).append("\n");
+        sb.append("Message: ").append(t.getMessage()).append("\n");
+        // append top few stacktrace elements to avoid extremely long logs
+        StackTraceElement[] st = t.getStackTrace();
+        int limit = Math.min(st.length, 8);
+        for (int i = 0; i < limit; i++) {
+            sb.append("\tat ").append(st[i].toString()).append("\n");
+        }
+        if (st.length > limit) sb.append("\t... (").append(st.length - limit).append(" more)\n");
+        return sb.toString();
+    }
+
+    /**
+     * Simple helper that tries to locate a screenshot file for the given test method.
+     * Adjust to your real screenshot storage or replace with your screenshot util.
+     * Looks for "./screenshots/<methodName>.png" and returns path if found.
+     */
+    private String findScreenshotForTest(String methodName) {
+        if (methodName == null) return null;
+        java.io.File file = new java.io.File("screenshots" + java.io.File.separator + methodName + ".png");
+        if (file.exists() && file.isFile()) {
+            return file.getAbsolutePath();
+        }
+        return null;
+    }
+}
