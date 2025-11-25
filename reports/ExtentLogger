@@ -1,0 +1,129 @@
+package com.can.reports;
+
+import com.aventstack.extentreports.MediaEntityBuilder;
+import com.aventstack.extentreports.markuputils.ExtentColor;
+import com.aventstack.extentreports.markuputils.MarkupHelper;
+import com.can.driver.CreateDriver;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.JavascriptExecutor;
+
+public final class ExtentLogger {
+
+    private ExtentLogger() {} // Prevent object creation
+
+    /* ─────────────────────────────── CORE LOGGERS ─────────────────────────────── */
+
+    public static void pass(String message) {
+        ExtentManager.getExtentTest().pass(message);
+    }
+
+    public static void info(String message) {
+        ExtentManager.getExtentTest().info(message);
+    }
+
+    public static void warning(String message) {
+        ExtentManager.getExtentTest().warning(message);
+    }
+
+    public static void skip(String message) {
+        ExtentManager.getExtentTest().skip(message);
+    }
+
+    public static void fatal(String message) {
+        ExtentManager.getExtentTest().fatal(message);
+    }
+
+    public static void fail(String message) {
+        ExtentManager.getExtentTest().fail(message,
+                MediaEntityBuilder.createScreenCaptureFromBase64String(getBase64Image()).build());
+    }
+
+
+    /* ─────────────────────────────── ATTACHMENTS ─────────────────────────────── */
+
+    /** Attach screenshot without marking test as fail */
+    public static void attachScreenshot() {
+        ExtentManager.getExtentTest().info("Screenshot",
+                MediaEntityBuilder.createScreenCaptureFromBase64String(getBase64Image()).build());
+    }
+
+    public static void attachScreenshot(String title) {
+        ExtentManager.getExtentTest().info(title,
+                MediaEntityBuilder.createScreenCaptureFromBase64String(getBase64Image()).build());
+    }
+
+    public static void attachResponse(String apiResponse) {
+        ExtentManager.getExtentTest().info(
+                MarkupHelper.createCodeBlock(apiResponse,
+                        com.aventstack.extentreports.markuputils.CodeLanguage.JSON)
+        );
+    }
+
+    public static void attachJson(Object jsonObject) {
+        attachResponse(jsonObject.toString());
+    }
+
+    public static void attachException(Throwable throwable) {
+        ExtentManager.getExtentTest().fail(throwable);
+    }
+
+    public static void highlight(String message) {
+        ExtentManager.getExtentTest().info(
+                MarkupHelper.createLabel(message, ExtentColor.BLUE)
+        );
+    }
+
+
+    /* ─────────────────────── HIGHLIGHT + SCREEN FOR FAILURES ─────────────────────── */
+
+    /**
+     * Highlights element and attaches failure screenshot.
+     */
+    public static void highlightAndFail(WebElement element, String message) {
+        try {
+            highlightElement(element);
+        } catch (Exception ignore) {
+            // fallback handled below
+        }
+
+        ExtentManager.getExtentTest().fail(message,
+                MediaEntityBuilder.createScreenCaptureFromBase64String(getBase64Image()).build());
+    }
+
+    /**
+     * Highlights multiple elements and attaches failure screenshot.
+     */
+    public static void highlightAndFail(String message, WebElement... elements) {
+        try {
+            if (elements != null) {
+                for (WebElement ele : elements) {
+                    highlightElement(ele);
+                }
+            }
+        } catch (Exception ignore) {}
+
+        ExtentManager.getExtentTest().fail(message,
+                MediaEntityBuilder.createScreenCaptureFromBase64String(getBase64Image()).build());
+    }
+
+
+    /* ─────────────────────────────── INTERNAL UTILITIES ─────────────────────────────── */
+
+    private static String getBase64Image() {
+        try {
+            return ((TakesScreenshot) CreateDriver.getInstance().getDriver())
+                    .getScreenshotAs(OutputType.BASE64);
+        } catch (Exception e) {
+            ExtentManager.getExtentTest().warning("Screenshot capture failed: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private static void highlightElement(WebElement element) {
+        if (element == null) return;
+        JavascriptExecutor js = (JavascriptExecutor) CreateDriver.getInstance().getDriver();
+        js.executeScript("arguments[0].style.border='3px solid red'; arguments[0].style.background='yellow';", element);
+    }
+}
