@@ -1,0 +1,36 @@
+import com.github.javafaker.Faker;
+
+import java.util.Locale;
+
+public class RandomDataUtils {
+
+    private static final Faker faker = new Faker(new Locale("en-IN"));
+
+    public static String randomEmail() {
+        return faker.internet().emailAddress();
+    }
+
+    public static String randomName() {
+        return faker.name().fullName();
+    }
+
+    public static String randomPhone() {
+        return faker.phoneNumber().cellPhone();
+    }
+
+    public static String randomAddress() {
+        return faker.address().fullAddress();
+    }
+
+    public static String randomUUID() {
+        return java.util.UUID.randomUUID().toString();
+    }
+
+    public static String randomNumber(int digits) {
+        return faker.number().digits(digits);
+    }
+
+    public static String randomAlphaNumeric(int length) {
+        return faker.lorem().characters(length, true, true);
+    }
+}
