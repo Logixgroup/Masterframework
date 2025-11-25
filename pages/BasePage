@@ -1,35 +1,114 @@
-package com.base;
+package com.framework.base;
 
-import com.driver.CreateDriver;
-import com.utils.ConfigDataManager;
-import org.openqa.selenium.WebDriver;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
+import com.framework.driver.CreateDriver;
+import com.framework.reports.ExtentLogger;
 
-import java.util.concurrent.TimeUnit;
+import org.openqa.selenium.*;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
-public class BasePage {
+import java.time.Duration;
+
+public abstract class BasePage {
 
     protected WebDriver driver;
+    protected WebDriverWait wait;
+    protected JavascriptExecutor js;
 
-    @BeforeMethod(alwaysRun = true)
-    public void setup() {
-        String browser = ConfigDataManager.get("browser");
-        CreateDriver.getInstance().setDriver(browser);
-        driver = CreateDriver.getInstance().getDriver();
+    public BasePage() {
+        this.driver = CreateDriver.getInstance().getDriver();
+        this.wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+        this.js = (JavascriptExecutor) driver;
+    }
 
-        driver.manage().timeouts().implicitlyWait(
-                Long.parseLong(ConfigDataManager.get("implicitWait")),
-                TimeUnit.SECONDS);
+    // ---------------- WAIT METHODS ----------------
 
-        driver.manage().window().maximize();
+    protected WebElement waitForVisible(By locator) {
+        ExtentLogger.info("Waiting for visibility of: " + locator);
+        return wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+    }
 
-        String url = ConfigDataManager.get("url");
+    protected WebElement waitForClickable(By locator) {
+        ExtentLogger.info("Waiting for element clickable: " + locator);
+        return wait.until(ExpectedConditions.elementToBeClickable(locator));
+    }
+
+    // ---------------- BASIC ACTIONS ----------------
+
+    protected void click(By locator) {
+        ExtentLogger.info("Clicking: " + locator);
+        waitForClickable(locator).click();
+    }
+
+    protected void type(By locator, String text) {
+        ExtentLogger.info("Typing '" + text + "' into: " + locator);
+        WebElement el = waitForVisible(locator);
+        el.clear();
+        el.sendKeys(text);
+    }
+
+    protected String getText(By locator) {
+        ExtentLogger.info("Reading text from: " + locator);
+        return waitForVisible(locator).getText();
+    }
+
+    protected boolean isDisplayed(By locator) {
+        try {
+            boolean visible = waitForVisible(locator).isDisplayed();
+            ExtentLogger.info(locator + " is displayed: " + visible);
+            return visible;
+        } catch (Exception e) {
+            ExtentLogger.info(locator + " is not displayed.");
+            return false;
+        }
+    }
+
+    // ---------------- JS ACTIONS ----------------
+
+    protected void jsClick(By locator) {
+        ExtentLogger.info("Performing JS click on: " + locator);
+        js.executeScript("arguments[0].click();", waitForVisible(locator));
+    }
+
+    protected void scrollIntoView(By locator) {
+        ExtentLogger.info("Scrolling into view: " + locator);
+        js.executeScript("arguments[0].scrollIntoView(true);", waitForVisible(locator));
+    }
+
+    // ---------------- NAVIGATION ----------------
+
+    protected void navigate(String url) {
+        ExtentLogger.info("Navigating to URL: " + url);
         driver.get(url);
     }
 
-    @AfterMethod(alwaysRun = true)
-    public void tearDown() {
-        CreateDriver.getInstance().quitDriver();
+    protected String getPageTitle() {
+        ExtentLogger.info("Fetching page title");
+        return driver.getTitle();
+    }
+
+    protected String getCurrentURL() {
+        ExtentLogger.info("Fetching current URL");
+        return driver.getCurrentUrl();
+    }
+
+    // ---------------- ASSERTION HELPERS ----------------
+
+    protected void assertTitleContains(String expected) {
+        ExtentLogger.info("Validating title contains: " + expected);
+        if (!driver.getTitle().contains(expected)) {
+            ExtentLogger.fail("Title did not contain expected text: " + expected);
+            throw new AssertionError("Title does not match");
+        }
+        ExtentLogger.pass("Title validated: " + expected);
+    }
+
+    protected void assertURLContains(String fragment) {
+        ExtentLogger.info("Validating URL contains: " + fragment);
+        if (!driver.getCurrentUrl().contains(fragment)) {
+            ExtentLogger.fail("URL did not contain expected fragment: " + fragment);
+            throw new AssertionError("URL does not match");
+        }
+        ExtentLogger.pass("URL validated: " + fragment);
     }
 }
