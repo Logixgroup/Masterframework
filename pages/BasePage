@@ -19,6 +19,11 @@ public abstract class BasePage {
         this.driver = CreateDriver.getInstance().getDriver();
         this.wait = new WebDriverWait(driver, Duration.ofSeconds(20));
         this.js = (JavascriptExecutor) driver;
+
+// 2️⃣ Initialize utils (all use same driver)
+        this.eleUtil = new ElementUtils(driver);
+        this.jsUtil = new JSUtils(driver);
+        this.waitUtil = new WaitUtils(driver);
     }
 
     // ---------------- WAIT METHODS ----------------
