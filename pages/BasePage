@@ -110,5 +110,6 @@ public abstract class BasePage {
             throw new AssertionError("URL does not match");
         }
         ExtentLogger.pass("URL validated: " + fragment);
-    }
+ 
+}
 }
