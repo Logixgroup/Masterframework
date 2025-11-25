@@ -1,0 +1,36 @@
+package com.framework.utils;
+
+import java.io.File;
+
+public final class  {
+
+    private FileUtils() {}
+
+    public static String createFolder(String folderPath) {
+        File f = new File(folderPath);
+        if (!f.exists()) f.mkdirs();
+        return f.getAbsolutePath();
+    }
+
+    public static boolean deleteFolder(String folderPath) {
+        return new File(folderPath).delete();
+    }
+
+    public static boolean fileExists(String filePath) {
+        return new File(filePath).exists();
+    }
+
+    public static String getLatestFile(String folderPath) {
+        File folder = new File(folderPath);
+        File[] files = folder.listFiles(File::isFile);
+        if (files == null || files.length == 0) return null;
+
+        File latest = files[0];
+        for (File file : files) {
+            if (file.lastModified() > latest.lastModified()) {
+                latest = file;
+            }
+        }
+        return latest.getAbsolutePath();
+    }
+}
