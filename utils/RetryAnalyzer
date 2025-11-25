@@ -1,0 +1,19 @@
+package com.framework.utils;
+
+import org.testng.IRetryAnalyzer;
+import org.testng.ITestResult;
+
+public class RetryAnalyzer implements IRetryAnalyzer {
+
+    private int currentCount = 0;
+    private static final int MAX_RETRY_COUNT = 2;
+
+    @Override
+    public boolean retry(ITestResult result) {
+        if (currentCount < MAX_RETRY_COUNT) {
+            currentCount++;
+            return true;
+        }
+        return false;
+    }
+}
