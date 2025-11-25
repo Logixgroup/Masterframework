@@ -1,0 +1,29 @@
+public class StringUtils {
+
+    public static boolean isNullOrEmpty(String str) {
+        return str == null || str.trim().isEmpty();
+    }
+
+    public static boolean isAlphaNumeric(String str) {
+        return str != null && str.matches("^[a-zA-Z0-9]+$");
+    }
+
+    public static String reverse(String str) {
+        return new StringBuilder(str).reverse().toString();
+    }
+
+    public static String capitalize(String str) {
+        if (isNullOrEmpty(str)) return str;
+        return Character.toUpperCase(str.charAt(0)) + str.substring(1);
+    }
+
+    public static String removeSpecialChars(String str) {
+        return str.replaceAll("[^a-zA-Z0-9]", "");
+    }
+
+    public static String mask(String str, int visibleChars) {
+        if (str == null || str.length() <= visibleChars) return str;
+        int maskLength = str.length() - visibleChars;
+        return "*".repeat(maskLength) + str.substring(maskLength);
+    }
+}
