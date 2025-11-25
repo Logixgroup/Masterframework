@@ -1,0 +1,81 @@
+package com.framework.pages;
+
+import com.framework.base.BasePage;
+import com.framework.utils.ElementUtils;
+import com.framework.utils.JSUtils;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebElement;
+import java.util.List;
+
+public class HomePage extends BasePage {
+
+    private ElementUtils eleUtil;
+    private JSUtils jsUtil;
+
+    // ---------------- LOCATORS ----------------
+    private final By loginButton = By.id("loginBtn");
+    private final By passwordField = By.id("passwordField");
+    private final By headerLogo = By.cssSelector("img.header-logo");
+    private final By homeNavBarList = By.cssSelector("ul.navbar li");
+    private final By productLink = By.xpath("//a[contains(text(), 'Products')]");
+    private final By becomeAPartnerLink = By.linkText("Become a Partner");
+    private final By productSearchBar = By.id("productSearch");
+
+    // ---------------- CONSTRUCTOR ----------------
+    public HomePage() {
+        super();   // gets driver from BasePage
+        
+    }
+
+    // ---------------- PAGE ACTIONS ----------------
+
+    /** Returns all nav bar elements */
+    public List<WebElement> getNavBarElements() {
+        return eleUtil.getElements(homeNavBarList);
+    }
+
+    /** Returns current URL */
+    public String getCurrentURL() {
+        return driver.getCurrentUrl();
+    }
+
+    /** Returns Page Title */
+    public String getPageTitle() {
+        return driver.getTitle();
+    }
+
+    /** Returns product link WebElement */
+    public WebElement getProductLinkElement() {
+        return eleUtil.getElement(productLink);
+    }
+
+    /** Click login button */
+    public HomePage clickLogin() {
+        eleUtil.clickWithWait(loginButton, 10);
+        return this;
+    }
+
+    /** Enter password */
+    public HomePage enterPassword(String pwd) {
+        eleUtil.sendKeys(passwordField, pwd);
+        return this;
+    }
+
+    /** Click Product link → returns next page */
+    public ProductsPage navigateToProducts() {
+        eleUtil.clickWithWait(productLink, 10);
+        return new ProductsPage();
+    }
+
+    /** Click Become a Partner Link using JS */
+    public HomePage clickBecomeAPartner() {
+        jsUtil.clickUsingJS(becomeAPartnerLink);
+        return this;
+    }
+
+    /** Enter product search */
+    public HomePage searchProduct(String product) {
+        eleUtil.sendKeys(productSearchBar, product);
+        return this;
+    }
+}
