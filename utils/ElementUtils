@@ -8,6 +8,26 @@ public final class ElementUtils {
 
     private ElementUtils() {}
 
+public static void click(WebDriver driver, By locator) {
+        WebElement element = WaitUtils.waitOnVisibility(driver, locator);
+
+
+        try {
+            element.click();
+            ExtentLogger.pass("Clicked → " + "Via element);
+        } catch (Exception e) {
+            System.out.println("Normal click failed, using JS click: " + e.getMessage());
+            jsClick(driver, element);
+            ExtentLogger.pass("Clicked → " + "cliked via jsClick");
+        }
+    }
+
+    private static void jsClick(WebDriver driver, WebElement element) {
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("arguments[0].click();", element);
+    }
+}
+
     public static void click(WebElement element, String msg) {
         element.click();
         ExtentLogger.pass("Clicked → " + msg);
